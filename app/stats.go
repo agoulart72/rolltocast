@@ -1,15 +1,20 @@
 package app
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
 type Strategies struct {
-	MaxFirst bool
+	MaxFirst           bool
+	NoBacklashOnFail   bool
+	RemoveCurrentLevel bool
 }
 
 type Stats struct {
 	Level            int
 	Strategies       Strategies
 	NumberOfRuns     int
+	SpellsPerRun     int
 	NumberOfSuccess  []int
 	NumberOfFailures []int
 	MaxSuccess       []int
@@ -18,7 +23,7 @@ type Stats struct {
 	FailureTimes     [][]int
 }
 
-func RunSorcerer(level int, strategy Strategies, runs int) Stats {
+func RunSorcerer(level int, strategy Strategies, runs int, spellsPerRun int) Stats {
 
 	mySorcerer := &Sorcerer{
 		Level: level,
@@ -40,21 +45,31 @@ func RunSorcerer(level int, strategy Strategies, runs int) Stats {
 		runSuccess := make([]int, 9)
 		runFailures := make([]int, 9)
 
-		for mySorcerer.CurrentSpellRank > 0 {
+		totalCastingsOnRun := 0
+
+		for mySorcerer.CurrentSpellRank > 0 && totalCastingsOnRun <= spellsPerRun {
 
 			rank := rand.Intn(mySorcerer.CurrentSpellRank) + 1 // 0 -> max
 
 			if strategy.MaxFirst {
 				rank = mySorcerer.CurrentSpellRank
 			}
+			if strategy.RemoveCurrentLevel && !mySorcerer.SpellRanks[rank-1] {
+				for i := range mySorcerer.SpellRanks {
+					if mySorcerer.SpellRanks[i] {
+						rank = i + 1
+					}
+				}
+			}
 
-			s, _ := mySorcerer.Cast(rank)
+			s, _ := mySorcerer.Cast(rank, strategy)
 			if s {
 				runSuccess[rank-1] += 1
 			} else {
 				runFailures[rank-1] += 1
 			}
 
+			totalCastingsOnRun++
 		}
 
 		for i := 0; i < 9; i++ {
@@ -86,6 +101,7 @@ func RunSorcerer(level int, strategy Strategies, runs int) Stats {
 		Level:            level,
 		Strategies:       strategy,
 		NumberOfRuns:     runs,
+		SpellsPerRun:     spellsPerRun,
 		NumberOfSuccess:  numberOfSuccess,
 		NumberOfFailures: numberOfFailures,
 		MaxSuccess:       maxSuccess,

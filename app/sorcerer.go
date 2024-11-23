@@ -27,6 +27,7 @@ type Sorcerer struct {
 	Level            int
 	Bonus            int
 	MaxSpellRank     int
+	SpellRanks       []bool
 	CurrentSpellRank int
 	Burn             int
 	CurrentHitDie    int
@@ -62,6 +63,12 @@ func (s *Sorcerer) LongRest() {
 	s.CurrentSpellRank = SorcererByLevel[s.Level-1].MaxSpellRank
 	s.Burn = 0
 	s.CurrentHitDie = s.Level
+	if len(s.SpellRanks) == 0 {
+		s.SpellRanks = make([]bool, SorcererByLevel[s.Level-1].MaxSpellRank)
+	}
+	for i := range s.SpellRanks {
+		s.SpellRanks[i] = true
+	}
 }
 
 func (s *Sorcerer) ShortRest() {
@@ -75,12 +82,16 @@ func (s *Sorcerer) ShortRest() {
 
 }
 
-func (s *Sorcerer) Cast(rank int) (success bool, backlash bool) {
+func (s *Sorcerer) Cast(rank int, strategy Strategies) (success bool, backlash bool) {
 
 	success = false
 	backlash = false
 
-	if s.CurrentSpellRank <= 0 {
+	if strategy.RemoveCurrentLevel {
+		if rank < len(s.SpellRanks) && !s.SpellRanks[rank-1] {
+			return false, false
+		}
+	} else if s.CurrentSpellRank <= 0 {
 		return false, false
 	}
 
@@ -88,21 +99,27 @@ func (s *Sorcerer) Cast(rank int) (success bool, backlash bool) {
 
 	success = (spellCheckRoll + s.Bonus) >= SpellCost[rank].DC
 
-	if spellCheckRoll < 20 {
+	if spellCheckRoll < 20 && !strategy.NoBacklashOnFail {
 		backlash = spellCheckRoll <= s.Burn
 	}
 
 	if success {
+		if strategy.NoBacklashOnFail && spellCheckRoll < 20 {
+			backlash = spellCheckRoll <= s.Burn
+		}
 		if SpellCost[rank].Burn-s.Level > 0 {
 			s.Burn += SpellCost[rank].Burn - s.Level
 		} else {
 			s.Burn += 1
 		}
-
 	}
 	if backlash {
 		s.Burn = 0
 		s.CurrentSpellRank = s.CurrentSpellRank - 1
+		if strategy.RemoveCurrentLevel {
+			// log.Default().Printf("rank %d ; s.SpellRanks : %+v", rank, s.SpellRanks)
+			s.SpellRanks[rank-1] = false
+		}
 	}
 
 	return success, backlash

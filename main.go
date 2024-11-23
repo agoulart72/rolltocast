@@ -39,6 +39,7 @@ func mainHandler(w http.ResponseWriter, req *http.Request) {
 
 	var level int = 1
 	var runs int = 1
+	var spellsPerRun = 10
 	var strategy app.Strategies = app.Strategies{
 		MaxFirst: false,
 	}
@@ -47,10 +48,10 @@ func mainHandler(w http.ResponseWriter, req *http.Request) {
 			fmt.Fprintf(w, "ParseForm() err: %v", err)
 			return
 		}
-		level, runs, strategy = parseForm(req)
+		level, runs, spellsPerRun, strategy = parseForm(req)
 	}
 
-	r := app.RunSorcerer(level, strategy, runs)
+	r := app.RunSorcerer(level, strategy, runs, spellsPerRun)
 	//		io.WriteString(w, "Hello, world!\n")
 	err = tmpl.Execute(w, r)
 	if err != nil {
@@ -67,11 +68,12 @@ func mainHandler(w http.ResponseWriter, req *http.Request) {
 	line.Render(w)
 }
 
-func parseForm(req *http.Request) (int, int, app.Strategies) {
+func parseForm(req *http.Request) (int, int, int, app.Strategies) {
 
 	var err error
 	var level int = 1
 	var runs int = 1
+	var spellsPerRun int = 10
 	var strategy app.Strategies = app.Strategies{
 		MaxFirst: false,
 	}
@@ -86,12 +88,25 @@ func parseForm(req *http.Request) (int, int, app.Strategies) {
 		fmt.Println("Not a number")
 		runs = 1
 	}
+	spellsPerRun, err = strconv.Atoi(req.FormValue("spells_per_run"))
+	if err != nil {
+		fmt.Println("Not a number")
+		spellsPerRun = 10
+	}
 	maxFirst := req.FormValue("strategy_max_first")
 	if maxFirst == "on" {
 		strategy.MaxFirst = true
 	}
+	noBacklashOnFail := req.FormValue("no_backlash_on_fail")
+	if noBacklashOnFail == "on" {
+		strategy.NoBacklashOnFail = true
+	}
+	removeCurrentLevel := req.FormValue("remove_current_level")
+	if removeCurrentLevel == "on" {
+		strategy.RemoveCurrentLevel = true
+	}
 
-	return level, runs, strategy
+	return level, runs, spellsPerRun, strategy
 }
 
 func generateBarChart(level int, r app.Stats, runs int) *charts.Bar {

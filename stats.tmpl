@@ -26,7 +26,18 @@
         <div class="top_container">
             <div> Level : <input type="text" name="level" value="{{ .Level }}"/></div>
             <div> Runs : <input type="text" name="runs" value="{{ .NumberOfRuns }}"/></div>
-            <div>Strategy: Max First <input type="checkbox" name="strategy_max_first" {{if .Strategies.MaxFirst}}checked{{end}} /></div>
+            <div> Spells per Run : <input type="text" name="spells_per_run" value="{{ .SpellsPerRun }}"/></div>
+            <div> Rules: 
+                <ul>
+                    <li>No Backlash on Failure <input type="checkbox" name="no_backlash_on_fail" {{if .Strategies.NoBacklashOnFail}}checked{{end}} /></li>
+                    <li>Backlash on Spell Level <input type="checkbox" name="remove_current_level" {{if .Strategies.RemoveCurrentLevel}}checked{{end}} /></li>
+                </ul>
+            </div>
+            <div>Strategy: 
+                <ul>
+                    <li>Max First <input type="checkbox" name="strategy_max_first" {{if .Strategies.MaxFirst}}checked{{end}} /></li>
+                </ul>
+            </div>
             <div><input type="submit" class="submit_button" value="Run" /></div>
         </div>
     </form>
